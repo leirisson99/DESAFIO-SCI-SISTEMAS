@@ -2,14 +2,18 @@ from pgvector.psycopg2 import register_vector
 from ingestion.setup_db import get_connection
 from ingestion.embed_and_store import generation_embedding
 from dotenv import load_dotenv
+from pgvector import Vector
 import os
 
 load_dotenv()
+SIMILARITY_THRESHOLD = float(os.getenv("SIMILARITY_THRESHOLD", 0.40))
+TOP_K =  int(os.getenv("TOP_K", 3))
 
-def search_similarit_conversation(query: str, k: int = int(os.getenv("TOP_K", 3))) -> list[dict]:
+def search_similarit_conversation(query: str, k: int = TOP_K) -> list[dict]:
     """Busca as k conversas mais similares semanticamente à pergunta do usuário.
     Retorna lista de dicionários com content, metadados e score de similaridade.
     """
+    
     query_embedding = generation_embedding(query)
     if query_embedding is None:
         print("Não foi possível gerar embedding para a pergunta.")
@@ -32,7 +36,7 @@ FROM conversation
 ORDER BY embedding <=> %s
 LIMIT %s
 """,
-(query_embedding, query_embedding, k)
+(Vector(query_embedding), Vector(query_embedding), k),
         )
         result = cur.fetchall()
         cur.close()
@@ -41,7 +45,7 @@ LIMIT %s
         return []
     finally:
         conn.close()
-    return [
+    resultado_filtrado = [
         { "conversation_id": row[0],
                 "content": row[1],
                 "intent": row[2],
@@ -50,6 +54,8 @@ LIMIT %s
                 "similarity" : row[5]
                 }
                 for row in result
+                if row[5] >= SIMILARITY_THRESHOLD
     ]
+
+    return resultado_filtrado
   
-    

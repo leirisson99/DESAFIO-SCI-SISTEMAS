@@ -1,3 +1,5 @@
+from pgvector import Vector
+
 from retrival import search as search_module
 from retrival.search import search_similarit_conversation
 
@@ -60,7 +62,7 @@ class TestSearchSimilaritConversation:
 
         query, params = cur.execute.call_args[0]
         assert "SELECT" in query
-        assert params == (embedding, embedding, 5)
+        assert params == (Vector(embedding), Vector(embedding), 5)
 
     def test_empty_result_returns_empty_list(self, mocker):
         mocker.patch.object(search_module, "generation_embedding", return_value=[0.1])
