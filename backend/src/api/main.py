@@ -33,11 +33,7 @@ class ChatRequest(BaseModel):
 
 
 class Source(BaseModel):
-    conversation_id: str
     content: str
-    intent: str
-    sector: str
-    sentiment: str
     similarity: float
 
 
@@ -51,7 +47,11 @@ def chat(request: ChatRequest) -> ChatResponse:
     try:
         answer = ask(request.message)
         fontes = get_ultimos_resultados()
-        return ChatResponse(answer=answer, sources=fontes)
+        sources = [
+            Source(content=fonte["content"], similarity=fonte["similarity"])
+            for fonte in fontes
+        ]
+        return ChatResponse(answer=answer, sources=sources)
     except Exception as e:
         print(f"[ERRO] Falha no endpoint /chat: {e}")
         raise HTTPException(status_code=500, detail="Erro interno ao processar a pergunta.")

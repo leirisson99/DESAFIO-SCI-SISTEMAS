@@ -30,16 +30,7 @@ class TestChatEndpoint:
         assert response.status_code == 200
         assert response.json() == {
             "answer": "Resposta do agente",
-            "sources": [
-                {
-                    "conversation_id": "abc123",
-                    "content": "conteudo da conversa",
-                    "intent": "duvida",
-                    "sector": "logistica",
-                    "sentiment": "neutro",
-                    "similarity": 0.87,
-                }
-            ],
+            "sources": [{"content": "conteudo da conversa", "similarity": 0.87}],
         }
 
     def test_empty_sources_list(self, mocker):
@@ -132,7 +123,7 @@ class TestChatEndpoint:
         response = client.post("/chat", json={"message": "pergunta qualquer"})
 
         sources = response.json()["sources"]
-        assert [s["conversation_id"] for s in sources] == ["id1", "id2"]
+        assert [s["content"] for s in sources] == ["conteudo 1", "conteudo 2"]
 
 
 class TestParseAllowedOrigins:
