@@ -22,12 +22,18 @@ agent = Agent(
 
 
 def ask(question: str) -> str:
-    """Envia uma pergunta ao agente e devolve a resposta como texto."""
-    response = agent(question)
-    return str(response)
+    """Envia uma pergunta ao agente e devolve a resposta como texto.
+    Em caso de falha (API, rede, etc.), devolve uma mensagem amigável ao usuário
+    e registra o erro real para depuração.
+    """
+    if not question or not question.strip():
+         return "Por favor, envie uma pergunta para que eu possa ajudar."
+     
+    try:
+        response = agent(question)
+        return str(response)
+    except Exception as e:
+        print(f"[ERRO] Falha ao processar pergunta '{question}': {e}")
+        return "Desculpe, ocorreu um problema ao processar sua pergunta. Tente novamente em instantes."
 
-if __name__ == "__main__":
-    pergunta = "qual a capital da França?"
-    print(f"Pergunta: {pergunta}\n")
-    resposta = ask(pergunta)
-    print(f"Resposta: {resposta}")
+
