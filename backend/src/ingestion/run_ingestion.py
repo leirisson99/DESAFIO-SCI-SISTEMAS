@@ -1,4 +1,3 @@
-import pandas as pd
 import json
 from pathlib import Path
 from ingestion.loader import preparation_conversation
@@ -8,7 +7,6 @@ from ingestion.embed_and_store import generation_embedding
 BASE_DIR = Path(__file__).resolve().parents[3]
 DATA_PATH = BASE_DIR / "data" / "data" / "conversations.jsonl"
 
-df = pd.read_json(DATA_PATH, lines=True)
 
 # responsaavel por carregar o dataset
 def load_conversations(path: str) -> list[dict]:
