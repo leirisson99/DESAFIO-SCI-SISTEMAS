@@ -1,8 +1,13 @@
+import { useMemo } from "react"
+import { useShallow } from "zustand/react/shallow"
+
 import { useConversationsStore } from "@/store/conversations-store"
 
 export function useConversationList() {
-  return useConversationsStore((s) =>
-    [...s.conversations].sort((a, b) => b.updatedAt - a.updatedAt)
+  const conversations = useConversationsStore((s) => s.conversations)
+  return useMemo(
+    () => [...conversations].sort((a, b) => b.updatedAt - a.updatedAt),
+    [conversations]
   )
 }
 
@@ -17,12 +22,14 @@ export function useActiveConversationId() {
 }
 
 export function useConversationActions() {
-  return useConversationsStore((s) => ({
-    createConversation: s.createConversation,
-    renameConversation: s.renameConversation,
-    deleteConversation: s.deleteConversation,
-    appendMessage: s.appendMessage,
-    updateMessage: s.updateMessage,
-    setActive: s.setActive,
-  }))
+  return useConversationsStore(
+    useShallow((s) => ({
+      createConversation: s.createConversation,
+      renameConversation: s.renameConversation,
+      deleteConversation: s.deleteConversation,
+      appendMessage: s.appendMessage,
+      updateMessage: s.updateMessage,
+      setActive: s.setActive,
+    }))
+  )
 }

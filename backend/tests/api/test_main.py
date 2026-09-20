@@ -126,6 +126,51 @@ class TestChatEndpoint:
         assert [s["content"] for s in sources] == ["conteudo 1", "conteudo 2"]
 
 
+class TestChatStreamEndpoint:
+    def test_streams_delta_and_done_events(self, mocker):
+        async def fake_ask_stream(message):
+            yield {"type": "delta", "text": "Olá"}
+            yield {"type": "delta", "text": " mundo"}
+            yield {
+                "type": "done",
+                "sources": [{"content": "conteudo da conversa", "similarity": 0.87}],
+            }
+
+        mocker.patch.object(api_main_module, "ask_stream", fake_ask_stream)
+
+        response = client.post("/chat/stream", json={"message": "meu pedido não chegou"})
+
+        assert response.status_code == 200
+        assert response.headers["content-type"].startswith("text/event-stream")
+
+        lines = [line for line in response.text.split("\n\n") if line.strip()]
+        assert lines[0] == 'data: {"type": "delta", "text": "Olá"}'
+        assert lines[1] == 'data: {"type": "delta", "text": " mundo"}'
+        assert lines[2] == (
+            'data: {"type": "done", "sources": '
+            '[{"content": "conteudo da conversa", "similarity": 0.87}]}'
+        )
+
+    def test_streams_error_event_when_agent_fails(self, mocker):
+        async def fake_ask_stream(message):
+            yield {"type": "error", "message": "algo deu errado"}
+
+        mocker.patch.object(api_main_module, "ask_stream", fake_ask_stream)
+
+        response = client.post("/chat/stream", json={"message": "oi"})
+
+        assert response.status_code == 200
+        assert 'data: {"type": "error", "message": "algo deu errado"}' in response.text
+
+    def test_missing_message_field_returns_422(self, mocker):
+        ask_stream_spy = mocker.patch.object(api_main_module, "ask_stream")
+
+        response = client.post("/chat/stream", json={})
+
+        assert response.status_code == 422
+        ask_stream_spy.assert_not_called()
+
+
 class TestParseAllowedOrigins:
     def test_empty_string_returns_empty_list(self):
         assert parse_allowed_origins("") == []

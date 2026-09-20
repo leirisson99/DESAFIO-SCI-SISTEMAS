@@ -5,7 +5,8 @@ import { useCallback, useRef, useState } from "react"
 import { toast } from "sonner"
 
 import { useConversationActions } from "@/hooks/use-conversations"
-import { ChatApiError, sendChatMessage } from "@/lib/chat-api"
+import { ChatApiError, streamChatMessage } from "@/lib/chat-api"
+import { createTypewriter } from "@/lib/typewriter"
 import type { Message } from "@/types/chat"
 
 interface PendingRequest {
@@ -28,14 +29,25 @@ export function useSendMessage(conversationId: string) {
         content: "",
       })
 
+      const typewriter = createTypewriter({
+        onUpdate: (text) => {
+          updateMessage(conversationId, assistantMessageId, {
+            content: text,
+            status: undefined,
+          })
+        },
+      })
+
       try {
-        const response = await sendChatMessage(userContent)
+        const result = await streamChatMessage(userContent, (delta) => {
+          typewriter.push(delta)
+        })
+        await typewriter.finish(result.answer)
         updateMessage(conversationId, assistantMessageId, {
-          content: response.answer,
-          sources: response.sources,
-          status: undefined,
+          sources: result.sources,
         })
       } catch (error) {
+        typewriter.stop()
         updateMessage(conversationId, assistantMessageId, { status: "error" })
 
         if (error instanceof ChatApiError && error.status === 401) {

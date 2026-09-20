@@ -1,5 +1,11 @@
+import asyncio
+
 from agent import agent as agent_module
-from agent.agent import ask
+from agent.agent import ask, ask_stream
+
+
+async def _collect(agen):
+    return [event async for event in agen]
 
 
 class TestAsk:
@@ -81,3 +87,84 @@ class TestAsk:
         captured = capsys.readouterr()
         assert "meu pedido não chegou" in captured.out
         assert "falha de rede" in captured.out
+
+
+class TestAskStream:
+    def test_yields_delta_event_per_chunk(self, mocker):
+        async def fake_stream_async(question):
+            yield {"data": "Olá"}
+            yield {"data": " mundo"}
+
+        fake_agent_instance = mocker.Mock()
+        fake_agent_instance.stream_async = fake_stream_async
+        fake_agent_instance.state.get.return_value = []
+        mocker.patch.object(agent_module, "Agent", return_value=fake_agent_instance)
+
+        events = asyncio.run(_collect(ask_stream("oi")))
+
+        assert events[0] == {"type": "delta", "text": "Olá"}
+        assert events[1] == {"type": "delta", "text": " mundo"}
+
+    def test_ignores_events_without_data(self, mocker):
+        async def fake_stream_async(question):
+            yield {"current_tool_use": {"name": "seek_knowledge"}}
+            yield {"data": "resposta"}
+
+        fake_agent_instance = mocker.Mock()
+        fake_agent_instance.stream_async = fake_stream_async
+        fake_agent_instance.state.get.return_value = []
+        mocker.patch.object(agent_module, "Agent", return_value=fake_agent_instance)
+
+        events = asyncio.run(_collect(ask_stream("oi")))
+
+        assert events == [
+            {"type": "delta", "text": "resposta"},
+            {"type": "done", "sources": []},
+        ]
+
+    def test_final_event_carries_sources(self, mocker):
+        async def fake_stream_async(question):
+            yield {"data": "resposta"}
+
+        fake_agent_instance = mocker.Mock()
+        fake_agent_instance.stream_async = fake_stream_async
+        fake_agent_instance.state.get.return_value = [
+            {"content": "conteudo", "similarity": 0.9}
+        ]
+        mocker.patch.object(agent_module, "Agent", return_value=fake_agent_instance)
+
+        events = asyncio.run(_collect(ask_stream("oi")))
+
+        assert events[-1] == {
+            "type": "done",
+            "sources": [{"content": "conteudo", "similarity": 0.9}],
+        }
+
+    def test_empty_question_yields_prompt_without_calling_agent(self, mocker):
+        agent_spy = mocker.patch.object(agent_module, "Agent")
+
+        events = asyncio.run(_collect(ask_stream("   ")))
+
+        assert events == [
+            {
+                "type": "delta",
+                "text": "Por favor, envie uma pergunta para que eu possa ajudar.",
+            },
+            {"type": "done", "sources": []},
+        ]
+        agent_spy.assert_not_called()
+
+    def test_agent_exception_yields_error_event(self, mocker):
+        mocker.patch.object(agent_module, "Agent", side_effect=Exception("falha de rede"))
+
+        events = asyncio.run(_collect(ask_stream("meu pedido não chegou")))
+
+        assert events == [
+            {
+                "type": "error",
+                "message": (
+                    "Desculpe, ocorreu um problema ao processar sua pergunta. "
+                    "Tente novamente em instantes."
+                ),
+            }
+        ]

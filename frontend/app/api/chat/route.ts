@@ -1,29 +1,13 @@
 import { NextResponse } from "next/server"
 import { z } from "zod"
 
-import { auth } from "@/auth"
 import { CHAT_API_TIMEOUT_MS } from "@/lib/constants"
 
 const chatRequestSchema = z.object({
   message: z.string().min(1),
 })
 
-const sourceSchema = z.object({
-  content: z.string(),
-  similarity: z.number(),
-})
-
-const chatResponseSchema = z.object({
-  answer: z.string(),
-  sources: z.array(sourceSchema),
-})
-
 export async function POST(request: Request) {
-  const session = await auth()
-  if (!session?.user) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 })
-  }
-
   const body = await request.json().catch(() => null)
   const parsed = chatRequestSchema.safeParse(body)
   if (!parsed.success) {
@@ -35,29 +19,31 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "backend_not_configured" }, { status: 500 })
   }
 
+  let backendResponse: Response
   try {
-    const backendResponse = await fetch(`${backendUrl}/chat`, {
+    backendResponse = await fetch(`${backendUrl}/chat/stream`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ message: parsed.data.message }),
       signal: AbortSignal.timeout(CHAT_API_TIMEOUT_MS),
     })
-
-    if (!backendResponse.ok) {
-      return NextResponse.json(
-        { error: "backend_error" },
-        { status: backendResponse.status === 422 ? 422 : 502 }
-      )
-    }
-
-    const data = await backendResponse.json().catch(() => null)
-    const parsedResponse = chatResponseSchema.safeParse(data)
-    if (!parsedResponse.success) {
-      return NextResponse.json({ error: "backend_invalid_response" }, { status: 502 })
-    }
-
-    return NextResponse.json(parsedResponse.data)
   } catch {
     return NextResponse.json({ error: "backend_unreachable" }, { status: 502 })
   }
+
+  if (!backendResponse.ok || !backendResponse.body) {
+    return NextResponse.json(
+      { error: "backend_error" },
+      { status: backendResponse.status === 422 ? 422 : 502 }
+    )
+  }
+
+  return new Response(backendResponse.body, {
+    headers: {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache, no-transform",
+      "X-Accel-Buffering": "no",
+      Connection: "keep-alive",
+    },
+  })
 }

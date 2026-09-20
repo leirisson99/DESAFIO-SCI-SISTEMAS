@@ -21,8 +21,3 @@ export interface Conversation {
   createdAt: number
   updatedAt: number
 }
-
-export interface ChatApiResponse {
-  answer: string
-  sources: Source[]
-}

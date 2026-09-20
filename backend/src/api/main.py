@@ -1,4 +1,5 @@
 import asyncio
+import json
 import logging
 import os
 from contextlib import asynccontextmanager
@@ -6,9 +7,10 @@ from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
-from agent.agent import ask
+from agent.agent import ask, ask_stream
 from agent.tools import get_ultimos_resultados
 from ingestion.run_ingestion import run_injestion
 from ingestion.setup_db import create_table, get_connection
@@ -94,3 +96,19 @@ def chat(request: ChatRequest) -> ChatResponse:
     except Exception as e:
         print(f"[ERRO] Falha no endpoint /chat: {e}")
         raise HTTPException(status_code=500, detail="Erro interno ao processar a pergunta.")
+
+
+@app.post("/chat/stream")
+async def chat_stream(request: ChatRequest) -> StreamingResponse:
+    async def event_generator():
+        async for event in ask_stream(request.message):
+            yield f"data: {json.dumps(event, ensure_ascii=False)}\n\n"
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache, no-transform",
+            "X-Accel-Buffering": "no",
+        },
+    )

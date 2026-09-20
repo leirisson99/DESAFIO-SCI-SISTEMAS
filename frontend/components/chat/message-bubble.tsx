@@ -1,11 +1,10 @@
 "use client"
 
-import { Bot, RotateCcw } from "lucide-react"
-import { useSession } from "next-auth/react"
+import { Bot, RotateCcw, User } from "lucide-react"
 
-import { SourcesCollapsible } from "@/components/chat/sources-collapsible"
+import { SourceCitations } from "@/components/chat/source-citations"
 import { TypingIndicator } from "@/components/chat/typing-indicator"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import type { Message } from "@/types/chat"
@@ -17,7 +16,6 @@ export function MessageBubble({
   message: Message
   onRetry?: () => void
 }) {
-  const { data: session } = useSession()
   const isUser = message.role === "user"
 
   return (
@@ -57,15 +55,14 @@ export function MessageBubble({
         )}
 
         {!isUser && message.sources && message.sources.length > 0 && (
-          <SourcesCollapsible sources={message.sources} />
+          <SourceCitations sources={message.sources} />
         )}
       </div>
 
       {isUser && (
         <Avatar className="size-8 shrink-0">
-          <AvatarImage src={session?.user?.image ?? undefined} alt="" />
           <AvatarFallback>
-            {(session?.user?.name ?? "U").slice(0, 1).toUpperCase()}
+            <User className="size-4" />
           </AvatarFallback>
         </Avatar>
       )}
