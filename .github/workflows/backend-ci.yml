@@ -33,12 +33,18 @@ jobs:
 
       - name: Run tests
         run: python -m pytest -v
+        env:
+          OPENAI_API_KEY: sk-ci-placeholder
+          EMBEDDING_MODEL: text-embedding-3-small
 
   docker-build:
     runs-on: ubuntu-latest
     needs: test
+    defaults:
+      run:
+        working-directory: .
     steps:
       - uses: actions/checkout@v4
 
       - name: Build image
-        run: docker build -t rag-backend:ci .
+        run: docker build -f backend/Dockerfile -t rag-backend:ci .
