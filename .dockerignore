@@ -8,6 +8,11 @@
 **/.env
 **/.env.local
 **/npm-debug.log*
-data
+data/.cache
+data/scripts
+data/README.md
+data/data/test.jsonl
+data/data/train.jsonl
+data/data/validation.jsonl
 .deepeval
 .claude

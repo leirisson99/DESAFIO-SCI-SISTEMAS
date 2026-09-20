@@ -1,4 +1,7 @@
+import asyncio
+import logging
 import os
+from contextlib import asynccontextmanager
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
@@ -7,8 +10,12 @@ from pydantic import BaseModel
 
 from agent.agent import ask
 from agent.tools import get_ultimos_resultados
+from ingestion.run_ingestion import run_injestion
+from ingestion.setup_db import create_table, get_connection
 
 load_dotenv()
+
+logger = logging.getLogger(__name__)
 
 
 def parse_allowed_origins(value: str) -> list[str]:
@@ -17,7 +24,39 @@ def parse_allowed_origins(value: str) -> list[str]:
 
 ALLOWED_ORIGINS = parse_allowed_origins(os.getenv("ALLOWED_ORIGINS", ""))
 
-app = FastAPI(title="RAG Customer Service API")
+
+def seed_database_if_empty() -> None:
+    """Cria a tabela (se preciso) e popula com o dataset embutido na imagem
+    caso o banco ainda esteja vazio. Idempotente: insert usa ON CONFLICT DO
+    NOTHING e so roda a ingestao de fato quando a tabela nao tem linhas.
+    """
+    try:
+        create_table()
+
+        conn = get_connection()
+        try:
+            cur = conn.cursor()
+            cur.execute("SELECT count(*) FROM conversation;")
+            total = cur.fetchone()[0]
+        finally:
+            conn.close()
+
+        if total == 0:
+            logger.info("Tabela 'conversation' vazia, iniciando ingestao automatica...")
+            run_injestion()
+        else:
+            logger.info("Tabela 'conversation' ja possui %s linhas, pulando ingestao.", total)
+    except Exception:
+        logger.exception("Falha ao popular o banco automaticamente no startup.")
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    asyncio.create_task(asyncio.to_thread(seed_database_if_empty))
+    yield
+
+
+app = FastAPI(title="RAG Customer Service API", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,

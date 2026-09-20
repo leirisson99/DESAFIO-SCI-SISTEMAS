@@ -4,7 +4,8 @@ WORKDIR /app
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    PYTHONPATH=/app/src
+    PYTHONPATH=/app/src \
+    INGESTION_DATA_PATH=/app/data/conversations.jsonl
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends gcc libpq-dev \
@@ -14,6 +15,7 @@ COPY backend/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY backend/src ./src
+COPY data/data/conversations.jsonl ./data/conversations.jsonl
 
 EXPOSE 8000
 
