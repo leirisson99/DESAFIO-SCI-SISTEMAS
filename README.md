@@ -2,6 +2,12 @@
 
 Sistema de Retrieval-Augmented Generation (RAG) para atendimento ao cliente: responde perguntas com base num histórico real de conversas de suporte (pedidos, cancelamentos, promoções etc.), usando busca semântica em vez de regras fixas. Serve como backend de um chat de atendimento — CLI, API HTTP (`/chat`, `/chat/stream`) e frontend web já implementados.
 
+## Deploy
+
+- **App (frontend):** [desafio-sci.app.foliumdev.com.br](https://desafio-sci.app.foliumdev.com.br)
+- **API (backend):** [desafio-sci.api.foliumdev.com.br](https://desafio-sci.api.foliumdev.com.br)
+- **Observabilidade (Grafana):** [desafio-sci.telemetria.foliumdev.com.br](https://desafio-sci.telemetria.foliumdev.com.br)
+
 ## Arquitetura
 
 ```
