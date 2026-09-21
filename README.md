@@ -54,6 +54,14 @@ Resumo das principais decisões — a justificativa completa de cada uma, inclui
 | LLM | OpenAI `gpt-4o-mini` | Mesmo provedor dos embeddings (stack simples), rápido e suficiente para o caso de uso |
 | System Prompt | 7 regras, evoluída por teste | Regras 6 e 7 nasceram de um bug real encontrado em teste (alucinação de identidade de negócio) |
 
+### Observabilidade
+
+O backend exporta traces e métricas via OpenTelemetry: o `openlit` instrumenta automaticamente as chamadas ao LLM (Strands/OpenAI), capturando tokens de entrada/saída e latência sem código manual, enquanto o `prometheus-fastapi-instrumentator` expõe métricas HTTP padrão em `/metrics`. Além disso, spans manuais (`rag.pipeline`, `rag.retrieval`, `rag.embedding`, `rag.db_query`) cobrem as etapas específicas do pipeline RAG, e os logs são estruturados em JSON e correlacionados por `trace_id`/`span_id`. Tudo é exportado via OTLP para uma instância do **Grafana OTEL LGTM** (Loki + Tempo + Grafana + Prometheus).
+
+**Decisão de arquitetura:** optou-se por usar o Grafana LGTM como painel de observabilidade em vez de construir um dashboard próprio no front-end. O LGTM já resolve busca de traces, correlação de logs e dashboards de métricas prontos — replicar isso no front consumiria tempo do desafio em um problema já resolvido, sem agregar valor ao sistema RAG em si.
+
+Variáveis de ambiente relevantes: `OTEL_EXPORTER_OTLP_ENDPOINT` (endpoint OTLP do coletor, default `http://localhost:4318`) e `OTEL_SERVICE_NAME` (default `rag-backend`). Métricas Prometheus cruas ficam disponíveis em `GET /metrics`.
+
 ## Como Rodar
 
 ### Pré-requisitos

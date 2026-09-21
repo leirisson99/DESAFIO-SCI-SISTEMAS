@@ -1,8 +1,11 @@
+import logging
 import os
 import psycopg2
 from dotenv import load_dotenv
 
 load_dotenv()
+
+logger = logging.getLogger(__name__)
 
 def get_connection():
     database_url = os.getenv("DATABASE_URL")
@@ -30,11 +33,11 @@ sentiment TEXT
 """)
         conn.commit()
         cur.close()
-        print("Tabela 'conversation criada com sucesso' ou já existe")
+        logger.info("Tabela 'conversation' criada com sucesso ou já existe")
 
-    except Exception as e:
+    except Exception:
         conn.rollback()
-        print(f"Error ao criar tabela: {e}")
+        logger.exception("Erro ao criar tabela")
     finally:
         cur.close()
 

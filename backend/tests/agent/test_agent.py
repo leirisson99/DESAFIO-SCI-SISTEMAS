@@ -79,14 +79,14 @@ class TestAsk:
             "Tente novamente em instantes."
         )
 
-    def test_agent_exception_logs_the_error(self, mocker, capsys):
+    def test_agent_exception_logs_the_error(self, mocker, caplog):
         mocker.patch.object(agent_module, "Agent", side_effect=Exception("falha de rede"))
 
-        ask("meu pedido não chegou")
+        with caplog.at_level("ERROR"):
+            ask("meu pedido não chegou")
 
-        captured = capsys.readouterr()
-        assert "meu pedido não chegou" in captured.out
-        assert "falha de rede" in captured.out
+        assert "meu pedido não chegou" in caplog.text
+        assert "falha de rede" in caplog.text
 
 
 class TestAskStream:

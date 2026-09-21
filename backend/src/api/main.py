@@ -14,6 +14,7 @@ from agent.agent import ask, ask_stream
 from agent.tools import get_ultimos_resultados
 from ingestion.run_ingestion import run_injestion
 from ingestion.setup_db import create_table, get_connection
+from observability import setup_observability
 
 load_dotenv()
 
@@ -60,6 +61,8 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="RAG Customer Service API", lifespan=lifespan)
 
+setup_observability(app)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
@@ -98,8 +101,8 @@ def chat(request: ChatRequest) -> ChatResponse:
             for fonte in fontes
         ]
         return ChatResponse(answer=answer, sources=sources)
-    except Exception as e:
-        print(f"[ERRO] Falha no endpoint /chat: {e}")
+    except Exception:
+        logger.exception("Falha no endpoint /chat")
         raise HTTPException(status_code=500, detail="Erro interno ao processar a pergunta.")
 
 

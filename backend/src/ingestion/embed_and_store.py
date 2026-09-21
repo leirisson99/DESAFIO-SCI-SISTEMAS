@@ -1,9 +1,12 @@
+import logging
 import os
 from openai import OpenAI
 from dotenv import load_dotenv
 
 
 load_dotenv()
+
+logger = logging.getLogger(__name__)
 
 api_key=os.getenv("OPENAI_API_KEY")
 embedding_model = os.getenv("EMBEDDING_MODEL")
@@ -16,7 +19,7 @@ def generation_embedding(text: str) -> list[float] | None:
     """
 
     if not text or not text.strip():
-        print("AVISO: o texto está vazio, embedding não gerado.")
+        logger.warning("O texto está vazio, embedding não gerado.")
         return None
 
     try:
@@ -27,8 +30,8 @@ def generation_embedding(text: str) -> list[float] | None:
         )
 
         return response.data[0].embedding
-    except Exception as e:
-        print(f"Erro ao gerar embedding: {e}")
+    except Exception:
+        logger.exception("Erro ao gerar embedding")
         return None
 
 

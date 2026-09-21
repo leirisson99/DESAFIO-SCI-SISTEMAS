@@ -3,6 +3,8 @@ from retrival.search import search_similarit_conversation
 from contextvars import ContextVar
 from strands import Agent
 
+from observability import RAG_RETRIEVAL_SECONDS, tracer
+
 
 # Cada requisição/contexto de execução tem sua própria cópia isolada dessa variável
 ultimos_resultados_var: ContextVar[list] = ContextVar("ultimos_resultados", default=[])
@@ -14,7 +16,11 @@ def seek_knowledge(question: str, agent: Agent | None = None) -> str:
     Use esta ferramenta sempre que precisar de informação para responder qualquer pergunta
     sobre atendimento, pedidos, cancelamentos, promoções ou outros temas de e-commerce.
     """
-    results = search_similarit_conversation(question)
+    with tracer.start_as_current_span("rag.retrieval") as span, RAG_RETRIEVAL_SECONDS.time():
+        results = search_similarit_conversation(question)
+        span.set_attribute("rag.chunks_retrieved", len(results))
+        if results:
+            span.set_attribute("rag.top_similarity", results[0]["similarity"])
 
     # agent.state tem lock interno e é a mesma instância que ask() criou —
     # funciona independente de em que thread/task a strands rodar a tool.
