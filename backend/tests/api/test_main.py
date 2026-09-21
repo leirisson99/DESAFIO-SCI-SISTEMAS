@@ -7,6 +7,14 @@ from api.main import parse_allowed_origins
 client = TestClient(api_main_module.app)
 
 
+class TestHealthEndpoint:
+    def test_returns_ok(self):
+        response = client.get("/")
+
+        assert response.status_code == 200
+        assert response.json() == {"status": "ok"}
+
+
 class TestChatEndpoint:
     def test_happy_path_returns_answer_and_sources(self, mocker):
         mocker.patch.object(api_main_module, "ask", return_value="Resposta do agente")

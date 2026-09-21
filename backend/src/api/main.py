@@ -69,6 +69,11 @@ app.add_middleware(
 )
 
 
+@app.get("/")
+def health() -> dict[str, str]:
+    return {"status": "ok"}
+
+
 class ChatRequest(BaseModel):
     message: str
 
