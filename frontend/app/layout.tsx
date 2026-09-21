@@ -18,6 +18,9 @@ const robotoMono = Roboto_Mono({
 export const metadata: Metadata = {
   title: "Atendimento IA",
   description: "Assistente de atendimento ao cliente com RAG",
+  icons: {
+    icon: "/ico.png",
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
