@@ -324,7 +324,16 @@
   background: #fff;
   display: flex;
   flex-direction: column;
-  --mobile-hero-h: clamp(244px, 34svh, 304px);
+  /* vh fallback first: on browsers without svh support, an unrecognized unit
+     inside clamp() invalidates the whole value, collapsing this to 0 and
+     letting the absolutely positioned video overlap the card below it. */
+  --mobile-hero-h: clamp(244px, 34vh, 304px);
+}
+
+@supports (height: 1svh) {
+  .stage.stacked {
+    --mobile-hero-h: clamp(244px, 34svh, 304px);
+  }
 }
 
 .stage.stacked .photo {
@@ -384,8 +393,15 @@
   background: #fff;
   border: 0;
   box-shadow: 0 -10px 28px rgba(20,28,36,.10);
-  min-height: calc(100svh - var(--mobile-hero-h) + 28px);
+  min-height: calc(100vh - var(--mobile-hero-h) + 28px);
 }
+
+@supports (height: 1svh) {
+  .stage.stacked .card {
+    min-height: calc(100svh - var(--mobile-hero-h) + 28px);
+  }
+}
+
 .stage.stacked .cardIn {
   position: static;
   width: 100%; height: auto;
